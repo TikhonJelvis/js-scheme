@@ -11,11 +11,11 @@ var builtins = {
     "*" : function (a, b) { return a * b;},
     "/" : function (a, b) { return a / b;},
     "%" : function (a, b) { return a % b;},
-    "=" : function (a, b) { return a = b;},
-    ">" : function (a, b) { return a > b;},
-    "<" : function (a, b) { return a < b;},
-    ">=" : function (a, b) { return a >= b;},
-    "<=" : function (a, b) { return a <= b;}
+    "=" : function (a, b) { return a == b ? "#t" : "#f";},
+    ">" : function (a, b) { return a > b ? "#t" : "#f";},
+    "<" : function (a, b) { return a < b ? "#t" : "#f";},
+    ">=" : function (a, b) { return a >= b ? "#t" : "#f";},
+    "<=" : function (a, b) { return a <= b ? "#t" : "#f";}
 };
 
 /**
@@ -40,8 +40,8 @@ for (var proc in builtins) {
  */
 function wrap(jsfunc, argNames) {
     var argNameList = listExpression(argNames),
-        body = listExpression(["jsfunc", Characters.STRING_QUOTE + jsfunc + Characters.STRING_QUOTE]
-                              .concat(argNameList.getValue()));
+        body = listExpression(["jsfunc", Characters.NO_ESCAPE_QUOTE + jsfunc +
+                               Characters.NO_ESCAPE_QUOTE].concat(argNameList.getValue()));
     return new SchemeProcedure(listExpression(["lambda", argNameList, body]));
 }
 

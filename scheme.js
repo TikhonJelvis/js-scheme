@@ -25,7 +25,11 @@ var Characters = {
     /**
      * The character used to end lists.
      */
-    LIST_END : ")"
+    LIST_END : ")",
+    /**
+     * The quoting character used to denote a string with no escaped values.
+     */
+    NO_ESCAPE_QUOTE : "`"
 };
 
 /**
@@ -60,6 +64,32 @@ function consoleRepl(line) {
     for (var i = 0; i < exps.length; i++) {
         console.log(schemeEval(exps[i], GLOBAL_ENVIRONMENT).toString());
     }
+}
+
+/**
+ * Reads in the given line of Scheme, returning an array of strings to print out.
+ *
+ * @function
+ * @param {String} line the line of Scheme code to read and evaluated.
+ * @return {String[]} the output of evaluating the Scheme. Error strings are marked with an
+ *  ._error property.
+ */
+function repl(line) {
+    var out = [],
+        exps = readLine(line);
+
+    for (var i = 0; i < exps.length; i++) {
+        try {
+            exps[i] = schemeEval(exps[i], GLOBAL_ENVIRONMENT);
+            out.push(exps[i].toString());
+        } catch (e) {
+            e = e.toString();
+            e._error = true;
+            out.push(e);
+        }
+    }
+
+    return out;
 }
 
 /**
@@ -125,6 +155,49 @@ function SchemeExpression(exp) {
      */
     this.getValue = function () {
         return value;
+    };
+
+    /**
+     * Returns the specified element from this expression as long as this is a list.
+     *
+     * @function
+     * @memberOf SchemeExpression
+     * @param {Integer} [pos=0] the position of the element to get.
+     * @return {SchemeExpression} the expression at the given position.
+     */
+    this.get = function (pos) {
+        if (!(value instanceof Array)) {
+            throw "You can only get an element from a list!";
+        }
+        pos = pos || 0;
+        return value[pos];
+    };
+
+    /**
+     * Returns the elements from this expression starting with pos1 up to (but not including) pos2.
+     *
+     * @function
+     * @memberOf SchemeExpression
+     * @param {Integer} pos1 the position to get from.
+     * @param {Integer} [pos2=values.length] the position to go up to. This has to be greater than
+     *  pos1.
+     * @return {SchemeExpression[]} the expressions in the given range.
+     */
+    this.getRange = function (pos1, pos2) {
+        var values = [];
+        
+        if (!(value instanceof Array)) {
+            throw "You can only get an element from a list!";
+        }
+        
+        pos1 = pos1 || 0;
+        pos2 = pos2 || value.length;
+
+        for (var i = pos1; i < pos2; i++) {
+            values.push(value[i]);
+        }
+
+        return values;
     };
 
     /**
@@ -282,7 +355,8 @@ function schemeEval(exp, env) {
     return exp.selfEvaluating ? exp :
         exp.variable ? env.lookup(exp) || schemeError("Variable " + exp + " does not exist!") :
         exp.specialForm ? specialForm(exp, env) :
-        exp.list ? schemeApply(schemeEval(exp.getValue()[0], env), exp.getValue().slice(1), env) :
+        exp.list ? schemeApply(schemeEval(exp.getValue()[0], env), exp.getRange(1),
+                               env) :
         "INVALID";
 }
 
@@ -346,7 +420,7 @@ function specialForm(exp, env) {
     try {
         return specialForms[form](exp, env);
     } catch (e) {
-        //schemeError("The special form " + form + " did not work!\n" + "Message: " + e);
+        schemeError("The special form " + form + " did not work!\n" + "Message: " + e);
         throw e;
     }
 }
@@ -398,10 +472,12 @@ var specialForms = {
         var value = exp.getValue();
 
         if (value[1].list) {// We're defining a procedure:
-            var procName = value[1].getValue()[0],
-                paramNames = listExpression(value[1].getValue().slice(1)),
-                body = value.slice(2),
+            var procName = value[1].get(0),
+                paramNames = listExpression(value[1].getRange(1)),
+                body = exp.getRange(2),
                 lambda = listExpression(["lambda", paramNames].concat(body));
+            console.log(value[1]);
+            console.log(lambda);
 
             return schemeEval(listExpression(["define", procName].concat(lambda)), env);
         } else {
@@ -431,7 +507,7 @@ var specialForms = {
     jsfunc : function (exp, env) {
         var value = exp.getValue(),
             jsFuncName = schemeEval(value[1], env).toString(),
-            jsArgs = value.splice(2);
+            jsArgs = exp.getRange(2);
 
         if (isString(jsFuncName)) {
             jsFuncName = stringValue(jsFuncName);
@@ -439,9 +515,6 @@ var specialForms = {
 
         for (var i = 0; i < jsArgs.length; i++) {
             jsArgs[i] = schemeEval(jsArgs[i], env).toString();
-            if (isString(jsArgs[i])) {
-                jsArgs[i] = stringValue(jsArgs[i]);
-            }
         }
 
         jsArgs = jsArgs.join(", ");
@@ -480,12 +553,16 @@ function isQuoted(expression) {
  * @return {Boolean} whether the given expression is self-evaluating.
  */
 function isSelfEvaluating(exp) {
-    if (/^\d*\.?\d+$/.test(exp)) {
+    if (/^[-+]?\d*\.?\d+$/.test(exp)) {
         return true;
     }
-    
-    return exp[0] == Characters.STRING_QUOTE &&
+
+    var isString = (exp[0] == Characters.STRING_QUOTE) &&
         indexOfUnescaped(exp.substring(1), Characters.STRING_QUOTE) > -1;
+    var isNoEscapeString = (exp[0] == Characters.NO_ESCAPE_QUOTE) &&
+        exp.substring(1).indexOf(Characters.NO_ESCAPE_QUOTE) > -1;
+        
+    return isString || isNoEscapeString;
 }
 
 /**
@@ -550,7 +627,7 @@ function isQuoted(exp) {
  * @return {Boolean} whether the given expression is a scheme string.
  */
 function isString(exp) {
-    return /^".*"$/m.test(exp.replace(/\s/g, " ").trim());
+    return /^["`].*["`]$/m.test(exp.replace(/\s/g, " ").trim());
 }
 
 // Utility functions:
@@ -601,11 +678,20 @@ function nextToken(line, startIndex) {
     switch (firstChar) {
     case Characters.STRING_QUOTE:
         endIndex = indexOfUnescaped(line.substring(1), Characters.STRING_QUOTE);
+        if (endIndex < 0) {
+            throw "Syntax error!";
+        }
+        return line.substring(startIndex, endIndex + 2);
+    case Characters.NO_ESCAPE_QUOTE:
+        endIndex = line.substring(1).indexOf(Characters.NO_ESCAPE_QUOTE);
         return line.substring(startIndex, endIndex + 2);
     case Characters.QUOTE:
         return Characters.QUOTE + nextToken(line.substring(1));
     case Characters.LIST_START:
         endIndex = matchBalancedPair(line);
+        if (endIndex < 0) {
+            throw "Syntax error!";
+        }
         return line.substring(startIndex, endIndex + 1);
     default:
         if (/.*\s.*/.test(line)) {
