@@ -13,11 +13,14 @@ Scheme
 <script src="init.js"></script>
 
 <script language="scheme">
-(define woo "woo")
+(define (not a) (if a '#f '#t))
+(define (and a b) (if a b '#f))
+(define (or a b) (if a a b))
+
 (define (cons a b) (lambda (car?) (if car? a b)))
 (define (car pair) (pair '#t))
 (define (cdr pair) (pair '#f))
-
+(define (map fn ls) (cons (fn (car ls)) (if (cdr ls) (map fn (cdr ls)) '#f)))
 </script>
 
 <link rel="stylesheet" type="text/css" href="scheme.css" />
