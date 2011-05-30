@@ -12,6 +12,14 @@ Scheme
 <script src="schemeBuiltins.js"></script>
 <script src="init.js"></script>
 
+<script language="scheme">
+(define woo "woo")
+(define (cons a b) (lambda (car?) (if car? a b)))
+(define (car pair) (pair '#t))
+(define (cdr pair) (pair '#f))
+
+</script>
+
 <link rel="stylesheet" type="text/css" href="scheme.css" />
 
 </head>

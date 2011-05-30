@@ -2,15 +2,27 @@
  * Sets up the cli console for the example.
  */
 $(function () {
+    // Create the cli interface:
     var cli = new Cli(function (text, cli) {
         var result = repl(text);
         for (var i = 0; i < result.length; i++) {
-            if (result._error) {
-                cli.output(result, "err");
+            if (result[i].type) {
+                cli.output(result[i].out, result[i].type);
             } else {
-                cli.output(result);
+                cli.output(result[i].out);
             }
         }
     });
     $("#schemePrompt").append(cli.getElement());
+
+    read("(define a 1)");
+    // Load all the Scheme code in the page:
+    var data = "",
+        schemeTags = $('script[language~="scheme"]');
+
+    for (var i = 0; i < schemeTags.length; i++) {
+        data += schemeTags.html();
+    }
+
+    load(data);
 });
