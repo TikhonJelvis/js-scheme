@@ -59,7 +59,7 @@ var GLOBAL_ENVIRONMENT = new SchemeEnvironment();
  * @param {String} line the line of Scheme to evaluated.
  */
 function consoleRepl(line) {
-    var exps = readLine(line);
+    var exps = read(line);
 
     for (var i = 0; i < exps.length; i++) {
         console.log(schemeEval(exps[i], GLOBAL_ENVIRONMENT).toString());
@@ -70,26 +70,39 @@ function consoleRepl(line) {
  * Reads in the given line of Scheme, returning an array of strings to print out.
  *
  * @function
+ * @see Cli#output
  * @param {String} line the line of Scheme code to read and evaluated.
- * @return {String[]} the output of evaluating the Scheme. Error strings are marked with an
- *  ._error property.
+ * @return {String[]} the output of evaluating the Scheme. Addtionally, a type property is added
+ *  to the string if the message should be of a special type. These types correspond to the types
+ *  expected by Cli#output
  */
 function repl(line) {
     var out = [],
-        exps = readLine(line);
+        exps = read(line);
 
     for (var i = 0; i < exps.length; i++) {
         try {
             exps[i] = schemeEval(exps[i], GLOBAL_ENVIRONMENT);
-            out.push(exps[i].toString());
+            out.push({out : exps[i].toString()});
         } catch (e) {
-            e = e.toString();
-            e._error = true;
-            out.push(e);
+            out.push({
+                out : e.toString(),
+                type : "err"
+            });
         }
     }
 
     return out;
+}
+
+/**
+ * Executes the given code, throwing away all returned values.
+ */
+function load(code) {
+    var exps = read(code);
+    for (var i = 0; i < exps.length; i++) {
+        schemeEval(exps[i], GLOBAL_ENVIRONMENT);
+    }
 }
 
 /**
@@ -98,7 +111,7 @@ function repl(line) {
  * @param {String} line the line of text to read.
  * @return {SchemeExpression[]} an array of the resulting SchemeExpressions.
  */
-function readLine(line) {
+function read(line) {
     var exps = [],
         token;
 
@@ -139,7 +152,7 @@ function SchemeExpression(exp) {
         this.list = true;
 
         exp = exp.trim().substring(1, exp.length - 1);
-        value = readLine(exp);
+        value = read(exp);
 
         if (isSpecialForm(value[0].toString())) {
             this.specialForm = true;
@@ -223,8 +236,9 @@ function SchemeExpression(exp) {
  * @constructor
  * @param {SchemeExpression} exp the expression which makes up this procedure. This expression
  *  has to be a list.
+ * @param {SchemeEnvironment} [env=GLOBAL_ENVIRONMENT] the environment in which this procedure was created.
  */
-function SchemeProcedure(exp) {
+function SchemeProcedure(exp, env) {
     if (!exp.list) {
         console.log(exp);
         throw "The expression defining a procedure has to be a list!";
@@ -246,6 +260,17 @@ function SchemeProcedure(exp) {
      */
     this.getBody = function () {
         return body;
+    };
+
+    /**
+     * Returns the environment in which this procedure was created.
+     *
+     * @function
+     * @memberOf SchemeProcedure
+     * @return {SchemeEnvironment} the environment in which this procedure was created.
+     */
+    this.getEnv = function () {
+        return env;
     };
 
     /**
@@ -371,7 +396,7 @@ function schemeEval(exp, env) {
  *   given environment.
  */
 function schemeApply(proc, params, env) {
-    var newEnv = new SchemeEnvironment(env);
+    var newEnv = new SchemeEnvironment(proc.getEnv());
 
     for (var i = 0; i < params.length; i++) {
         params[i] = schemeEval(params[i], env);
@@ -438,8 +463,8 @@ var specialForms = {
      *  and containing a list of argument names as well as a body.
      * @return {SchemeProcedure} the Scheme procedure this lambda expression creates.
      */
-    lambda : function (exp) {
-        return new SchemeProcedure(exp);
+    lambda : function (exp, env) {
+        return new SchemeProcedure(exp, env);
     },
     /**
      * The special form for simple conditionals.
@@ -476,17 +501,22 @@ var specialForms = {
                 paramNames = listExpression(value[1].getRange(1)),
                 body = exp.getRange(2),
                 lambda = listExpression(["lambda", paramNames].concat(body));
-            console.log(value[1]);
-            console.log(lambda);
 
             return schemeEval(listExpression(["define", procName].concat(lambda)), env);
         } else {
             var name = value[1].getValue(),
-                newValue = value[2];
+                newValue = schemeEval(value[2], env);
 
-            env.bind(name, schemeEval(newValue, env), env);
+            env.bind(name, newValue);
             return newValue;
         }
+    },
+    "set!" : function (exp, env) {
+        var name = exp.get(1),
+            value = schemeEval(exp.get(2), env);
+
+        env.set(name, value);
+        return value;
     },
     /**
      * Returns the value of the expression without evalling it.
@@ -495,6 +525,16 @@ var specialForms = {
      */
     quote : function (exp, env) {
         return exp.getValue()[1];
+    },
+    /**
+     * Returns a string with the given expression as its value.
+     *
+     * @param {SchemeExpression} exp the expression to stringify.
+     * @param {SchemeEnvironment} env the environment in which to evaluate this expression.
+     * @return {SchemeExpression} the Scheme expression that is the given expression as a string.
+     */
+    "str-quote" : function (exp, env) {
+        return new SchemeExpression('"' + schemeEval(exp.get(1), env).toString() + '"');
     },
     /**
      * Calls a given js function with the given parameters. For example, to alert "hello world", do this:
@@ -514,12 +554,36 @@ var specialForms = {
         }
 
         for (var i = 0; i < jsArgs.length; i++) {
-            jsArgs[i] = schemeEval(jsArgs[i], env).toString();
+            jsArgs[i] = schemeEval(jsArgs[i], env);
+            
+            if (jsArgs[i].list) {
+                jsArgs[i] = jsArgs[i].getValue().join(", ");
+            } else {
+                jsArgs[i] = jsArgs[i].toString();
+            }
         }
 
         jsArgs = jsArgs.join(", ");
 
-        return new SchemeExpression(eval("(" + jsFuncName + ")" + "(" + jsArgs + ");") + "");
+        var jsResult = eval("(" + jsFuncName + ")" + "(" + jsArgs + ");");
+        return new SchemeExpression(jsResult);
+    },
+    /**
+     * Returns a Scheme procedure which lets you call methods on the given JavaScript object.
+     *
+     * @function
+     * @param {SchemeExpression} exp the expression calling the special form.
+     * @param {SchemeEnvironment} env the environment in which to evaluate the form.
+     * @return {SchemeProcedure} a procedure for calling methods on the JavaScript object.
+     */
+    jsobj : function (exp, env) {
+        var name = schemeEval(exp.get(1), env).toString(),
+            body = listExpression(["jsfunc", "`function (method, args) {return " + name + "[method](args);}`",
+                                   "method", "args"]),
+            lambda = listExpression(["lambda", listExpression(["method", "args"]),
+                                     new SchemeExpression("(set! method (str-quote method))"), body]);
+
+        return new SchemeProcedure(lambda);
     }
 };
 
@@ -538,10 +602,11 @@ function listExpression(list) {
 /**
  * Returns whether the given expression string is a quoted expression.
  *
- * @param {String} expression the Scheme expression to check.
+ * @param {String} exp the Scheme expression to check.
  * @return {Boolean} whether the given expression is quoted.
  */
-function isQuoted(expression) {
+function isQuoted(exp) {
+    exp += "";
     return /^'.*/.test(expression);
 }
 
@@ -553,6 +618,7 @@ function isQuoted(expression) {
  * @return {Boolean} whether the given expression is self-evaluating.
  */
 function isSelfEvaluating(exp) {
+    exp += "";
     if (/^[-+]?\d*\.?\d+$/.test(exp)) {
         return true;
     }
@@ -595,6 +661,7 @@ function isAtom(exp) {
  * @return {Boolean} whether the given expression is a list.
  */
 function isList(exp) {
+    exp += "";
     return exp.trim()[0] == Characters.LIST_START &&
             exp.trim()[exp.length - 1] == Characters.LIST_END;
 }
@@ -617,6 +684,7 @@ function isSpecialForm(exp) {
  * @return {Boolean} whether the given expression is quoted.
  */
 function isQuoted(exp) {
+    exp += "";
     return exp.trim()[0] == Characters.QUOTE;
 }
 
@@ -627,6 +695,7 @@ function isQuoted(exp) {
  * @return {Boolean} whether the given expression is a scheme string.
  */
 function isString(exp) {
+    exp += "";
     return /^["`].*["`]$/m.test(exp.replace(/\s/g, " ").trim());
 }
 
