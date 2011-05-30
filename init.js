@@ -2,8 +2,8 @@
  * Sets up the cli console for the example.
  */
 $(function () {
-    // Create the cli interface:
-    var cli = new Cli(function (text, cli) {
+    // Create the cli interface (we _want_ it in the global scope!)
+    cli = new Cli(function (text, cli) {
         var result = repl(text);
         for (var i = 0; i < result.length; i++) {
             if (result[i].type) {
