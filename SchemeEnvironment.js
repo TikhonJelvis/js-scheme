@@ -57,5 +57,22 @@ function SchemeEnvironment(parent) {
             bindings[name] = value;
         }
     };
+
+    /**
+     * Returns a string containg all of the bindings in the environment.
+     */
+    this.toString = function () {
+        var toReturn = "<br />";
+
+        for (name in bindings) {
+            toReturn += name + " : " + bindings[name] + "<br />";
+        }
+
+        if (parent) {
+            toReturn += parent.toString();
+        }
+
+        return toReturn;
+    };
 }
 

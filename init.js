@@ -15,7 +15,6 @@ $(function () {
     });
     $("#schemePrompt").append(cli.getElement());
 
-    read("(define a 1)");
     // Load all the Scheme code in the page:
     var data = "",
         schemeTags = $('script[language~="scheme"]');

@@ -1,5 +1,4 @@
 // The built in procedures for Scheme.
-
 /**
  * A collection of builtin procedures for Scheme.
  *
@@ -11,25 +10,15 @@ var builtins = {
     "*" : function (a, b) { return a * b;},
     "/" : function (a, b) { return a / b;},
     "%" : function (a, b) { return a % b;},
-    "=" : function (a, b) { return a == b ? "#t" : "#f";},
-    ">" : function (a, b) { return a > b ? "#t" : "#f";},
-    "<" : function (a, b) { return a < b ? "#t" : "#f";},
-    ">=" : function (a, b) { return a >= b ? "#t" : "#f";},
-    "<=" : function (a, b) { return a <= b ? "#t" : "#f";}
+    "=" : function (a, b) { return a == b;},
+    ">" : function (a, b) { return a > b;},
+    "<" : function (a, b) { return a < b;},
+    ">=" : function (a, b) { return a >= b;},
+    "<=" : function (a, b) { return a <= b;}
 };
 
-/**
- * Returns a Scheme procedure that corresponds to the given code.
- *
- * @param {String} code the code for a procedure.
- * @return {SchemeProcedure} the resulting procedure.
- */
-function createProc(code) {
-    return new SchemeProcedure(new SchemeExpression(code));
-}
-
 for (var proc in builtins) {
-    builtins[proc] = wrap(builtins[proc], ["a", "b"]);
+    builtins[proc] = wrap(builtins[proc]);
 }
 
 /**
@@ -38,11 +27,21 @@ for (var proc in builtins) {
  * @param {Function} jsfunc the JavaScript function to wrap.
  * @return {SchemeProcedure} the Scheme procedure wrapping the JavaScript function.
  */
-function wrap(jsfunc, argNames) {
-    var argNameList = listExpression(argNames),
-        body = listExpression(["jsfunc", Characters.NO_ESCAPE_QUOTE + jsfunc +
-                               Characters.NO_ESCAPE_QUOTE].concat(argNameList.getValue()));
-    return new SchemeProcedure(listExpression(["lambda", argNameList, body]));
+function wrap(jsfunc) {
+    var numArgs = jsfunc.length,
+        args = ""; 
+
+    for (var i = 0; i < numArgs; i++) {
+        args += "a" + i + " ";
+    }
+    args = args.trim();
+
+    var expression = Characters.LIST_START + Characters.LIST_START +
+        args + Characters.LIST_END + " " + Characters.LIST_START + "jsfunc" + " " +
+        Characters.NO_ESCAPE_QUOTE + jsfunc + Characters.NO_ESCAPE_QUOTE + " " + args +
+        Characters.LIST_END + Characters.LIST_END;
+
+    return schemeProcedure(schemeExpression(expression), GLOBAL_ENVIRONMENT);
 }
 
 /**
@@ -52,7 +51,7 @@ function wrap(jsfunc, argNames) {
  */
 function augment(env) {
     for (var proc in builtins) {
-        env.bind(new SchemeExpression(proc), builtins[proc]);
+        env.bind(proc, builtins[proc]);
     }
 }
 

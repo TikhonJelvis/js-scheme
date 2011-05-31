@@ -12,7 +12,7 @@ var specialForms = {
      * @return {SchemeProcedure} the Scheme procedure this lambda expression creates.
      */
     lambda : function (exp, env) {
-        return new SchemeProcedure(exp, env);
+        return schemeProcedure(exp, env);
     },
     /**
      * The special form for simple conditionals.
@@ -23,12 +23,10 @@ var specialForms = {
      * @return {SchemeExpression} the result of evaluating the appropriate statement.
      */
     if : function (exp, env) {
-        var value = exp.getValue();
-        
-        if (schemeEval(value[1], env).toString().trim() != SchemeValues.FALSE) {// If true:
-            return schemeEval(value[2], env);
+        if (schemeEval(exp.car, env).toString().trim() != SchemeValues.FALSE) {// If true:
+            return schemeEval(exp.cdr.car, env);
         } else { // If false:
-            return schemeEval(value[3], env);
+            return schemeEval(exp.cdr.cdr.car, env);
         }
     },
     /**
@@ -42,26 +40,25 @@ var specialForms = {
      * @return {SchemeExpression} the expression which was just bound to a name.
      */
     define : function (exp, env) {
-        var value = exp.getValue();
+        if (exp.car.list) {// We're defining a procedure:
+            var procName = exp.car.car,
+                paramNames = exp.car.cdr,
+                body = exp.cdr,
+                lambda = list([schemeExpression("lambda"), paramNames]);
+            lambda.cdr.cdr = body;
 
-        if (value[1].list) {// We're defining a procedure:
-            var procName = value[1].get(0),
-                paramNames = listExpression(value[1].getRange(1)),
-                body = exp.getRange(2),
-                lambda = listExpression(["lambda", paramNames].concat(body));
-
-            return schemeEval(listExpression(["define", procName].concat(lambda)), env);
+            return specialForms.define(list([procName, lambda]), env);
         } else {
-            var name = value[1].getValue(),
-                newValue = schemeEval(value[2], env);
+            var name = exp.car,
+                newValue = schemeEval(exp.cdr.car, env);
 
             env.bind(name, newValue);
             return newValue;
         }
     },
     "set!" : function (exp, env) {
-        var name = exp.get(1),
-            value = schemeEval(exp.get(2), env);
+        var name = exp.car,
+            value = schemeEval(exp.cdr.car, env);
 
         env.set(name, value);
         return value;
@@ -72,7 +69,7 @@ var specialForms = {
      * @param {SchemeExpression} exp the quoted expression. Must be in the form (quote exp).
      */
     quote : function (exp, env) {
-        return exp.getValue()[1];
+        return exp.value;
     },
     /**
      * Returns a string with the given expression as its value.
@@ -82,7 +79,7 @@ var specialForms = {
      * @return {SchemeExpression} the Scheme expression that is the given expression as a string.
      */
     "str-quote" : function (exp, env) {
-        return new SchemeExpression('"' + schemeEval(exp.get(1), env).toString() + '"');
+        return schemeExpression('"' + schemeEval(exp.car, env) + '"');
     },
     /**
      * Calls a given js function with the given parameters. For example, to alert "hello world", do this:
@@ -93,44 +90,67 @@ var specialForms = {
      * @return {SchemeExpression} returns the result of evaluating what the js function returned.
      */
     jsfunc : function (exp, env) {
-        var value = exp.getValue(),
-            jsFuncName = schemeEval(value[1], env).toString(),
-            jsArgs = exp.getRange(2);
+        var jsFuncName = schemeEval(exp.car, env).toString(),
+            jsArgs = exp.cdr,
+            jsArgsArray = [];
 
         if (isString(jsFuncName)) {
             jsFuncName = stringValue(jsFuncName);
         }
 
-        for (var i = 0; i < jsArgs.length; i++) {
-            jsArgs[i] = schemeEval(jsArgs[i], env);
-            
-            if (jsArgs[i].list) {
-                jsArgs[i] = jsArgs[i].getValue().join(", ");
-            } else {
-                jsArgs[i] = jsArgs[i].toString();
-            }
+        while (jsArgs != SchemeValues.NIL) {
+            jsArgsArray.push(schemeEval(jsArgs.car, env));
+            jsArgs = jsArgs.cdr;
         }
 
-        jsArgs = jsArgs.join(", ");
+        for (var i = 0; i < jsArgsArray.length; i++) {
+            jsArgsArray[i] = jsArgsArray[i].toString();
+        }
 
-        var jsResult = eval("(" + jsFuncName + ")" + "(" + jsArgs + ");");
-        return new SchemeExpression(jsResult);
+        jsArgsArray = jsArgsArray.join(", ");
+
+        var jsResult = eval("(" + jsFuncName + ")" + "(" + jsArgsArray + ");");
+        
+        if (typeof jsResult == "undefined") {
+            return SchemeValues.NIL;
+        } else if (typeof jsResult == "boolean") {
+            return wrapBool(jsResult);
+        }
+        
+        return schemeExpression(jsResult);
     },
-    /**
-     * Returns a Scheme procedure which lets you call methods on the given JavaScript object.
-     *
-     * @function
-     * @param {SchemeExpression} exp the expression calling the special form.
-     * @param {SchemeEnvironment} env the environment in which to evaluate the form.
-     * @return {SchemeProcedure} a procedure for calling methods on the JavaScript object.
-     */
-    jsobj : function (exp, env) {
-        var name = schemeEval(exp.get(1), env).toString(),
-            body = listExpression(["jsfunc", "`function (method, args) {return " + name + "[method](args);}`",
-                                   "method", "args"]),
-            lambda = listExpression(["lambda", listExpression(["method", "args"]),
-                                     new SchemeExpression("(set! method (str-quote method))"), body]);
-
-        return new SchemeProcedure(lambda);
+    cons : function (exp, env) {
+        return pair(schemeEval(exp.car, env), schemeEval(exp.cdr.car, env));
+    },
+    car : function (exp, env) {
+        return schemeEval(exp.car, env).car;
+    },
+    cdr : function (exp, env) {
+        return schemeEval(exp.car, env).cdr;
+    },
+    "null?" : function (exp, env) {
+        return wrapBool(schemeEval(exp.car, env).nil);
     }
 };
+
+/**
+ * Given a value turns into #t if it is truthy and #f if it is falsy by JavaSCript standards.
+ *
+ * @param bool the value to translate.
+ * @returns {SchemeExpression} #t if the value is truthy and #f otherwise.
+ */
+function wrapBool(bool) {
+    return bool ? SchemeValues.TRUE : SchemeValues.FALSE;
+}
+
+for (var form in specialForms) {
+    with ({form : form}) {
+        var formExpression = schemeExpression(form);
+        formExpression.specialForm = true;
+        formExpression.name = form;
+        formExpression.toString = function () {
+            return "[spec=" + form + "]";
+        };
+        GLOBAL_ENVIRONMENT.bind(schemeExpression(form), formExpression);
+    }
+}

@@ -27,7 +27,15 @@ var Characters = {
     /**
      * The quoting character used to denote a string with no escaped values.
      */
-    NO_ESCAPE_QUOTE : "`"
+    NO_ESCAPE_QUOTE : "`",
+    /**
+     * A pretty lambda symbol for the web.
+     */
+    LAMBDA : "&#955;",
+    /**
+     * The character that separates the two elements of a pair which isn't a list.
+     */
+    PAIR_SEPARATOR : "."
 };
 
 /**
@@ -39,6 +47,20 @@ var SchemeValues = {
     /**
      * The only false value in Scheme land!
      */
-    FALSE : "#f"
+    FALSE : "#f",
+    /**
+     * This is just for convenience--everything but #f is actually true.
+     */
+    TRUE : "#t",
+    /**
+     * The empty list is really special, so here it is:
+     */
+    NIL : {
+        list : true,
+        nil : true,
+        toString : function (noParens) {
+            return noParens ? "" : "()";
+        }
+    }
 };
 

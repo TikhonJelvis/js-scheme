@@ -8,19 +8,33 @@ Scheme
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
 <script src="lib/cli.js"></script>
+<script src="schemeValues.js"></script>
+<script src="schemeRead.js"></script> 
+<script src="schemeExpression.js"></script>
+<script src="schemeProcedure.js"></script>
+<script src="SchemeEnvironment.js"></script>
 <script src="scheme.js"></script>
+<script src="specialForms.js"></script>
 <script src="schemeBuiltins.js"></script>
 <script src="init.js"></script>
 
 <script language="scheme">
-(define (not a) (if a '#f '#t))
-(define (and a b) (if a b '#f))
-(define (or a b) (if a a b))
-
-(define (cons a b) (lambda (car?) (if car? a b)))
-(define (car pair) (pair '#t))
-(define (cdr pair) (pair '#f))
-(define (map fn ls) (cons (fn (car ls)) (if (cdr ls) (map fn (cdr ls)) '#f)))
+(define (list) _params)
+(define (map fn ls)
+  (if (null? ls)
+      nil
+      (cons (fn (car ls)) (map fn (cdr ls)))))
+(define (accumulate fn base ls)
+  (if (null? ls) 
+      base
+      (accumulate fn (fn base (car ls)) (cdr ls))))
+(define (filter fn ls)
+  (if (null? ls)
+      ls
+      (if (fn (car ls))
+          (cons (car ls) (filter fn (cdr ls)))
+          (filter fn (cdr ls)))))
+(define (even? num) (= (% num 2) 0))
 </script>
 
 <link rel="stylesheet" type="text/css" href="scheme.css" />
