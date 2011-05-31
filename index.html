@@ -35,6 +35,11 @@ Scheme
           (cons (car ls) (filter fn (cdr ls)))
           (filter fn (cdr ls)))))
 (define (even? num) (= (% num 2) 0))
+(define (_wrap-2-arg fn base)
+  (lambda args
+    (accumulate fn base args)))
+(define + (_wrap-2-arg + 0))
+(define * (_wrap-2-arg * 1))
 </script>
 
 <link rel="stylesheet" type="text/css" href="scheme.css" />

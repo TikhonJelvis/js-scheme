@@ -17,6 +17,10 @@ function schemeProcedure(exp, env) {
     exp.parameterNames = exp.car,
     exp.body = exp.cdr;
 
+    if (!exp.parameterNames.list) {
+        exp._vararg = true;
+    }
+
     /**
      * Binds the given parameters to this procedure's parameter names in the specified
      * environment. If there are too many values passed in, only the first n values are bound
@@ -33,10 +37,14 @@ function schemeProcedure(exp, env) {
         var names = exp.parameterNames;
         
         env.bind(schemeExpression("_params"), parameters);
-        while (parameters != SchemeValues.NIL && names != SchemeValues.NIL) {
-            env.bind(names.car, parameters.car);
-            parameters = parameters.cdr;
-            names = names.cdr;
+        if (!exp._vararg) {
+            while (parameters != SchemeValues.NIL && names != SchemeValues.NIL) {
+                env.bind(names.car, parameters.car);
+                parameters = parameters.cdr;
+                names = names.cdr;
+            }
+        } else {
+            env.bind(names, parameters);
         }
     };
 
