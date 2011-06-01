@@ -40,6 +40,22 @@ Scheme
     (accumulate fn base args)))
 (define + (_wrap-2-arg + 0))
 (define * (_wrap-2-arg * 1))
+(define = (lambda args
+            (null? (filter (lambda (n) (not (js= n (car args)))) (cdr args)))))
+(define (zero? z) (= z 0))
+(define (positive? x) (> x 0))
+(define (negative? x) (< x 0))
+(define (odd? n) (= (% n 2) 1))
+(define (even? n) (= (% n 2) 0))
+(define (not b) (if b #f #t))
+(define and (lambda args 
+	      (if (null? args) #t 
+		(if (null? (cdr args)) (car args)
+		  (if (car args) (apply and (cdr args)) #f)))))
+(define or (lambda args
+              (if (null? args) #f
+                (if (null? (cdr args)) (car args)
+                  (if (car args) (car args) (apply or (cdr args)))))))
 </script>
 
 <link rel="stylesheet" type="text/css" href="scheme.css" />
