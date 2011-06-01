@@ -10,7 +10,7 @@ var builtins = {
     "*" : function (a, b) { console.log(a, b, a * b); return a * b;},
     "/" : function (a, b) { return a / b;},
     "%" : function (a, b) { return a % b;},
-    "=" : function (a, b) { return a == b;},
+    "js=" : function (a, b) { return a == b;},
     ">" : function (a, b) { return a > b;},
     "<" : function (a, b) { return a < b;},
     ">=" : function (a, b) { return a >= b;},
