@@ -130,6 +130,10 @@ var specialForms = {
     },
     "null?" : function (exp, env) {
         return wrapBool(schemeEval(exp.car, env).nil);
+    },
+    apply : function (exp, env) {
+        var proc = schemeEval(exp.car, env);
+        return schemeApply(proc, schemeEval(exp.cdr.car, env), env);
     }
 };
 
