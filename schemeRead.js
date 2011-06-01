@@ -1,3 +1,5 @@
+var BR = "<br />";
+
 /**
  * Reads in the given line of Scheme, returning an array of strings to print out.
  *
@@ -10,18 +12,26 @@
  */
 function repl(line) {
     var out = [],
+        exps;
+    try {
         exps = read(line);
 
-    for (var i = 0; i < exps.length; i++) {
-//        try {
-            exps[i] = schemeEval(exps[i], GLOBAL_ENVIRONMENT);
-            out.push({out : exps[i].toString()});
-/*        } catch (e) {
-            out.push({
-                out : e.toString(),
-                type : "err"
-            });
-        }*/
+        for (var i = 0; i < exps.length; i++) {
+            try {
+                exps[i] = schemeEval(exps[i], GLOBAL_ENVIRONMENT);
+                out.push({out : exps[i].toString()});
+            } catch (e) {
+                out.push({
+                    out : e.toString(),
+                    type : "err"
+                });
+            }
+        }
+    } catch (e) {
+        out.push({
+            out : e.toString(),
+            type : "err"
+        });
     }
 
     return out;
@@ -122,7 +132,7 @@ function nextToken(line, startIndex) {
     case Characters.STRING_QUOTE:
         endIndex = indexOfUnescaped(line.substring(1), Characters.STRING_QUOTE);
         if (endIndex < 0) {
-            throw "Syntax error!";
+            throw "Syntax error: missing quote:" + BR + line;
         }
         return line.substring(startIndex, endIndex + 2);
     case Characters.NO_ESCAPE_QUOTE:
@@ -133,7 +143,7 @@ function nextToken(line, startIndex) {
     case Characters.LIST_START:
         endIndex = matchBalancedPair(line);
         if (endIndex < 0) {
-            throw "Syntax error!";
+            throw "Syntax error: missing parentheses:" + BR + line;
         }
         return line.substring(startIndex, endIndex + 1);
     default:

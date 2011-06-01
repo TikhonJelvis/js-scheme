@@ -17,11 +17,19 @@ GLOBAL_ENVIRONMENT.bind(schemeExpression("nil"), SchemeValues.NIL);
  * @return {SchemeExpression} the result of evaluating the given expression.
  */
 function schemeEval(exp, env) {
-    return exp.quoted ? exp.value :
-        exp.selfEvaluating ? exp :
-        exp.variable ? env.lookup(exp) || schemeError("Variable " + exp + " does not exist!") :
-        exp.list ? schemeApply(schemeEval(exp.car, env), exp.cdr, env) :
-        "INVALID";
+    try {
+        return exp.quoted ? exp.value :
+            exp.selfEvaluating ? exp :
+            exp.variable ? env.lookup(exp) || schemeError("Variable " + exp + " does not exist!") :
+            exp.list ? schemeApply(schemeEval(exp.car, env), exp.cdr, env) :
+            schemeError("Invalid expression!\n" + exp);
+    } catch (e) {
+        if (e.schemeError) {
+            e.stack.push(exp);
+        }
+
+        throw e;
+    }
 }
 
 /**
@@ -42,7 +50,7 @@ function schemeApply(proc, params, env) {
 
     if (proc.specialForm) {
         return specialForms[proc.name](params, env);
-    } else {
+    } else if (proc.proc) {
         while (params != SchemeValues.NIL) {
             evalledParams.push(schemeEval(params.car, env));
             params = params.cdr;
@@ -52,6 +60,8 @@ function schemeApply(proc, params, env) {
         proc.bindParameters(newEnv, evalledParams);
         
         return schemeEvalSequence(proc.body, newEnv);
+    } else {
+        throw "Bad function:\n" + proc;
     }
 }
 
@@ -78,7 +88,15 @@ function schemeEvalSequence(seq, env) {
  * @param {String} text the error message to show.
  */
 function schemeError(text) {
-    throw text;
+    throw {
+        text : "Scheme Error:\n" + text,
+        stack : [],
+        schemeError : true,
+        toString : function () {
+            return this.text + ((this.stack.length > 0) ? "\n" +
+                "at:\n" + this.stack.join("\n") : "");
+        }
+    };
 }
 
 /**
@@ -92,10 +110,9 @@ function specialForm(exp, env) {
     var value = exp.value,
         form = value[0];// The particular form to execute...
 
-//    try {
+    try {
         return specialForms[form](exp, env);
-/*    } catch (e) {
+    } catch (e) {
         schemeError("The special form " + form + " did not work!\n" + "Message: " + e);
-        throw e;
-    }*/
+    }
 }

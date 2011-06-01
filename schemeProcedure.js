@@ -11,7 +11,9 @@ function schemeProcedure(exp, env) {
         console.log(exp);
         throw "The expression defining a procedure has to be a list!";
     }
-    
+
+    exp.proc = true;
+
     exp.env = env;
 
     exp.parameterNames = exp.car,
@@ -36,12 +38,17 @@ function schemeProcedure(exp, env) {
     exp.bindParameters = function (env, parameters) {
         var names = exp.parameterNames;
         
-        env.bind(schemeExpression("_params"), parameters);
         if (!exp._vararg) {
             while (parameters != SchemeValues.NIL && names != SchemeValues.NIL) {
                 env.bind(names.car, parameters.car);
                 parameters = parameters.cdr;
                 names = names.cdr;
+            }
+
+            if (names != SchemeValues.NIL) {
+                schemeError("Too few parameters!\n" + exp);
+            } else if (parameters != SchemeValues.NIL) {
+                schemeError("Too many parameters!\n" + exp);
             }
         } else {
             env.bind(names, parameters);
