@@ -7,6 +7,9 @@
  * @param {SchemeEnvironment} [env=GLOBAL_ENVIRONMENT] the environment in which this procedure was created.
  */
 function schemeProcedure(exp, env) {
+    exp = schemeExpression(exp);
+    env = env || GLOBAL_ENVIRONMENT;
+
     if (!exp.list) {
         console.log(exp);
         throw "The expression defining a procedure has to be a list!";
@@ -57,8 +60,8 @@ function schemeProcedure(exp, env) {
 
     var oldToString = exp.toString;
     exp.toString = function (noParens) {
-        return "[" + Characters.LAMBDA + " " + exp.parameterNames + " " +
-            exp.body.toString(true) + "]";
+        return "[" + Characters.LAMBDA + " " + exp.parameterNames + " &rarr; " +
+            exp.body.toString(true) + "]\n&rarr;" + exp.env + "\n";
     };
 
     return exp;

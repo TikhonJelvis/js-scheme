@@ -1,3 +1,4 @@
+var envId = 0;
 /**
  * Represents an environment, which is a set of variable names and binidngs. An environment
  * also has a parent unless it is the global environment.
@@ -8,6 +9,7 @@
  */
 function SchemeEnvironment(parent) {
     var bindings = {};
+    this._id = envId++;
     
     /**
      * Returns the value corresponding to the given given variable name in this environment.
@@ -62,17 +64,11 @@ function SchemeEnvironment(parent) {
      * Returns a string containg all of the bindings in the environment.
      */
     this.toString = function () {
-        var toReturn = "<br />";
-
-        for (name in bindings) {
-            toReturn += name + " : " + bindings[name] + "<br />";
-        }
-
-        if (parent) {
-            toReturn += parent.toString();
-        }
-
-        return toReturn;
+      if (this._id == 0) {
+          return "env#0";
+      } else {
+          return "env#" + this._id + " &rarr; " + parent;
+      }
     };
 }
 

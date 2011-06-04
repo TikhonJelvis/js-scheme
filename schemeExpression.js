@@ -1,11 +1,25 @@
 /**
- * Given a string returns the corresponding SchemeExpression.
+ * Given a string returns the corresponding SchemeExpression. If it is passed a
+ * SchemeExpression instead of a string, returns a copy of that SchemeExpression.
  *
  * @constructor SchemeExpression
  * @param {String} exp the string to turn into an expression.
  * @return {SchemeExpression} the scheme expression that represents the given string.
  */
 function schemeExpression (exp) {
+    if (exp._scheme) {
+        var obj = {};
+        for (var prop in exp) {
+            if (exp[prop]._scheme) {
+                obj[prop] = schemeExpression(exp[prop]);
+            } else {
+                obj[prop] = exp[prop];
+            }
+        }
+
+        return obj;
+    } 
+
     if (isQuoted(exp)) {
         return quoted(exp);
     } else if (isAtom(exp)) {
@@ -40,6 +54,7 @@ function schemeExpression (exp) {
      */
     function quoted(exp) {
         return {
+            _scheme : true,
             value : schemeExpression(unquote(exp)),
             quoted : true,
             toString : function () {
@@ -57,6 +72,7 @@ function schemeExpression (exp) {
      */
     function atom(exp) {
         var toReturn = {
+            _scheme : true,
             value : exp,
             atom : true,
             toString : function () {
@@ -214,6 +230,7 @@ function expressionList (list) {
  */
 function pair(car, cdr) {
     var toReturn = {
+        _scheme : true,
         car : car,
         cdr : cdr,
         pair : true,
@@ -255,6 +272,7 @@ function list(parts) {
     }
 
     toReturn.list = true;
+    toReturn._scheme = true;
 
     toReturn.toString = function (noParens) {
         var inside = toReturn.car + " " + toReturn.cdr.toString(true);

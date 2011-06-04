@@ -43,14 +43,14 @@ function schemeEval(exp, env) {
  *   given environment.
  */
 function schemeApply(proc, params, env) {
-    var newEnv = new SchemeEnvironment(proc.env),
-        evalledParams = [];
-
     env = env || GLOBAL_ENVIRONMENT;
 
     if (proc.specialForm) {
         return specialForms[proc.name](params, env);
     } else if (proc.proc) {
+        var newEnv = new SchemeEnvironment(proc.env),
+            evalledParams = [];
+
         while (params != SchemeValues.NIL) {
             evalledParams.push(schemeEval(params.car, env));
             params = params.cdr;

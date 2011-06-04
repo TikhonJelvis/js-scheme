@@ -17,6 +17,7 @@
 #schemePrompt > div > div {
     position : relative;
     overflow : auto;
+    height : 500px;
 }
 
 #schemePrompt input {
@@ -35,5 +36,9 @@
 }
 
 #schemePrompt .in {
-    color : #36F;
+    color : #69F;
+}
+
+#schemePrompt .info {
+    color : #6F9;
 }

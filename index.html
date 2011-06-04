@@ -19,7 +19,7 @@ Scheme
 <script src="init.js"></script>
 
 <script language="scheme">
-(define (list) _params)
+(define list (lambda args args))
 (define (map fn ls)
   (if (null? ls)
       nil
@@ -56,6 +56,8 @@ Scheme
               (if (null? args) #f
                 (if (null? (cdr args)) (car args)
                   (if (car args) (car args) (apply or (cdr args)))))))
+(define print (lambda args (apply jsfunc (cons `function ()
+			 {cli.output(Array.prototype.join.call(arguments, ","), "info")}` args))))
 </script>
 
 <link rel="stylesheet" type="text/css" href="scheme.css" />
