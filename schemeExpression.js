@@ -25,10 +25,11 @@ function schemeExpression (exp) {
     } else if (isAtom(exp)) {
         return atom(exp);
     } else if (isPairLiteral(exp)) {
+        exp = exp.trim();
+        exp = exp.substring(1, exp.length - 1);
         var first = nextToken(exp),
             last = nextToken(remainder(remainder(exp)));
-        exp = expressionList(first, last);
-        return pair(exp[0], exp[1]);
+        return pair(schemeExpression(first), schemeExpression(last));
     } else if (isList(exp)) {
         var spec = isSpecialForm(exp),
             toReturn;
@@ -55,10 +56,11 @@ function schemeExpression (exp) {
     function quoted(exp) {
         return {
             _scheme : true,
-            value : schemeExpression(unquote(exp)),
-            quoted : true,
+            car : schemeExpression("quote"),
+            cdr : pair(schemeExpression(unquote(exp)), SchemeValues.NIL),
+            list : true,
             toString : function () {
-                return Characters.QUOTE + this.value;
+                return Characters.QUOTE + this.cdr.car;
             }
         };
     }
@@ -177,9 +179,11 @@ function schemeExpression (exp) {
      */
     function isPairLiteral(exp) {
         var pairLiteral = true;
-        exp += "";
+        exp = (exp + "").trim();
         if (exp[0] != Characters.LIST_START || exp[exp.length - 1] != Characters.LIST_END) {
             pairLiteral = false;
+        } else {
+            exp = exp.substring(1, exp.length - 1);
         }
 
         var secondToken = nextToken(remainder(exp));
@@ -187,6 +191,7 @@ function schemeExpression (exp) {
             pairLiteral = false;
         }
 
+        if (pairLiteral) console.log("It's a pair!");
         return pairLiteral;
     }
 
@@ -262,7 +267,19 @@ function pair(car, cdr) {
  * @return {SchemeExpression} the resulting list.
  */
 function list(parts) {
-    var toReturn;
+    var toReturn,
+        end = parts.end;
+
+    // It's not an improper list:
+    if (end) {
+        delete parts.end;
+        var ls = list(parts);
+        delete ls.list;
+        for (var lsp = ls; lsp.cdr != SchemeValues.NIL; lsp = lsp.cdr);
+        lsp.cdr = end;
+        return ls;
+    }
+
     if (parts.length == 0) {
         return SchemeValues.NIL;
     } else if (parts.length == 1) {
@@ -271,11 +288,17 @@ function list(parts) {
         toReturn = pair(parts[0], list(parts.slice(1)));
     }
 
-    toReturn.list = true;
+    if (!parts.end) {
+        toReturn.list = true;
+    } 
+
     toReturn._scheme = true;
 
     toReturn.toString = function (noParens) {
-        var inside = toReturn.car + " " + toReturn.cdr.toString(true);
+        var inside = toReturn.cdr.nil || toReturn.cdr.cdr ?
+            toReturn.car + " " + toReturn.cdr.toString(true) :
+            toReturn.car + " . " + toReturn.cdr.toString();
+            
         inside = inside.trim();
         
         if (noParens) {

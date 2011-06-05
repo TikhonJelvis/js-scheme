@@ -1,4 +1,4 @@
-var BR = "<br />";
+var blarg = false;
 
 /**
  * Reads in the given line of Scheme, returning an array of strings to print out.
@@ -66,7 +66,15 @@ function read(line) {
         line = line.trim();
         token = nextToken(line);
         line = remainder(line);
-        exps.push(schemeExpression(token));
+
+        // This allows us to read the internals of improper lists.
+        if (token == Characters.PAIR_SEPARATOR) {
+            console.log("Improper end:", schemeExpression(nextToken(line)));
+            exps.end = schemeExpression(nextToken(line));
+            break;
+        } else {
+            exps.push(schemeExpression(token));
+        }
     }
 
     return exps;
@@ -132,7 +140,7 @@ function nextToken(line, startIndex) {
     case Characters.STRING_QUOTE:
         endIndex = indexOfUnescaped(line.substring(1), Characters.STRING_QUOTE);
         if (endIndex < 0) {
-            throw "Syntax error: missing quote:" + BR + line;
+            throw "Syntax error: missing quote:\n" + line;
         }
         return line.substring(startIndex, endIndex + 2);
     case Characters.NO_ESCAPE_QUOTE:
@@ -143,7 +151,7 @@ function nextToken(line, startIndex) {
     case Characters.LIST_START:
         endIndex = matchBalancedPair(line);
         if (endIndex < 0) {
-            throw "Syntax error: missing parentheses:" + BR + line;
+            throw "Syntax error: missing parentheses:\n" + line;
         }
         return line.substring(startIndex, endIndex + 1);
     default:
@@ -169,7 +177,7 @@ function remainder(line) {
         return "";
     }
     
-    return line.substring(token.length);
+    return line.substring(token.length).trim();
 }
 
 /**

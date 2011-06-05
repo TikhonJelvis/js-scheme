@@ -26,7 +26,11 @@ var specialForms = {
         if (schemeEval(exp.car, env).toString().trim() != SchemeValues.FALSE) {// If true:
             return schemeEval(exp.cdr.car, env);
         } else { // If false:
-            return schemeEval(exp.cdr.cdr.car, env);
+            if (exp.cdr.cdr != SchemeValues.NIL) {
+                return schemeEval(exp.cdr.cdr.car, env);
+            } else {
+                return SchemeValues.NIL;
+            }
         }
     },
     /**
@@ -69,7 +73,7 @@ var specialForms = {
      * @param {SchemeExpression} exp the quoted expression. Must be in the form (quote exp).
      */
     quote : function (exp, env) {
-        return exp.value;
+        return exp.car;
     },
     /**
      * Returns a string with the given expression as its value.

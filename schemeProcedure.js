@@ -1,10 +1,11 @@
 /**
- * Turns the given Scheme expression in the given environment into a Scheme procedure.
+ * Returns the given Scheme expression in the given environment as a Scheme procedure.
  *
  * @function
  * @param {SchemeExpression} exp the expression which makes up this procedure. This expression
  *  has to be a list.
  * @param {SchemeEnvironment} [env=GLOBAL_ENVIRONMENT] the environment in which this procedure was created.
+ * @return the resulting procedure.
  */
 function schemeProcedure(exp, env) {
     exp = schemeExpression(exp);
@@ -22,7 +23,7 @@ function schemeProcedure(exp, env) {
     exp.parameterNames = exp.car,
     exp.body = exp.cdr;
 
-    if (!exp.parameterNames.list) {
+    if (!exp.parameterNames.cdr) {
         exp._vararg = true;
     }
 
@@ -40,12 +41,24 @@ function schemeProcedure(exp, env) {
      */  
     exp.bindParameters = function (env, parameters) {
         var names = exp.parameterNames;
-        
+
+        bind_args:
         if (!exp._vararg) {
             while (parameters != SchemeValues.NIL && names != SchemeValues.NIL) {
+                if (!names.cdr) {
+                    console.log(names);
+                    env.bind(names, parameters);
+                    break bind_args;
+                }
+                
                 env.bind(names.car, parameters.car);
                 parameters = parameters.cdr;
                 names = names.cdr;
+            }
+
+            if (parameters == SchemeValues.NIL && !names.cdr) {
+                env.bind(names, SchemeValues.NIL);
+                break bind_args;
             }
 
             if (names != SchemeValues.NIL) {
@@ -61,7 +74,7 @@ function schemeProcedure(exp, env) {
     var oldToString = exp.toString;
     exp.toString = function (noParens) {
         return "[" + Characters.LAMBDA + " " + exp.parameterNames + " &rarr; " +
-            exp.body.toString(true) + "]\n&rarr;" + exp.env + "\n";
+            exp.body.toString(true) + "]\n&rarr;" + exp.env;
     };
 
     return exp;

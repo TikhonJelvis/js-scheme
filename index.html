@@ -57,7 +57,9 @@ Scheme
                 (if (null? (cdr args)) (car args)
                   (if (car args) (car args) (apply or (cdr args)))))))
 (define print (lambda args (apply jsfunc (cons `function ()
-			 {cli.output(Array.prototype.join.call(arguments, ","), "info")}` args))))
+			 {cli.output(Array.prototype.join.call(arguments, ","),
+			 "info")}` args))))
+(define (range start end) (if (> start end) nil (cons start (range (+ start 1) end))))
 </script>
 
 <link rel="stylesheet" type="text/css" href="scheme.css" />
