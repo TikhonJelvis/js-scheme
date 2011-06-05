@@ -1,0 +1,1 @@
+A Scheme interpreter implemented in JavaScript. Currently basics like lambda, if, define and math (+, -, *, /, %) work. Unfortunately, macros are currently nonfunctional (mostly). When macros work, I will add things like let and cond that can be defined entirely in Scheme.
