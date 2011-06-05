@@ -15,7 +15,7 @@ $(function () {
     });
     $("#schemePrompt").append(cli.getElement());
 
-    // Load all the Scheme code in the page:
+    // Load all the Scheme code in script tags in the page:
     var data = "",
         schemeTags = $('script[language~="scheme"]');
 
@@ -24,4 +24,10 @@ $(function () {
     }
 
     load(data);
+
+    // Now dynamically load Scheme code using AJAX:
+    $.get("library.scm", function (data) {
+        console.log(data);
+        load(data);
+    });
 });
