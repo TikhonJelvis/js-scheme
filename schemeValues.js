@@ -62,6 +62,7 @@ var SchemeValues = {
     NIL : {
         list : true,
         nil : true,
+        _scheme : true,
         toString : function (noParens) {
             return noParens ? "" : "()";
         }

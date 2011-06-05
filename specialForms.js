@@ -26,7 +26,7 @@ var specialForms = {
         if (schemeEval(exp.car, env).toString().trim() != SchemeValues.FALSE) {// If true:
             return schemeEval(exp.cdr.car, env);
         } else { // If false:
-            if (exp.cdr.cdr != SchemeValues.NIL) {
+            if (!exp.cdr.cdr.nil) {
                 return schemeEval(exp.cdr.cdr.car, env);
             } else {
                 return SchemeValues.NIL;
@@ -61,8 +61,12 @@ var specialForms = {
         }
     },
     "define-syntax" : function (exp, env) {
+        console.log("Defining syntax!");
         var name = exp.car,
             macro = schemeSyntaxRules(exp.cdr.car.cdr);
+
+        console.log("Name: " + name);
+        console.log("Macro: " + macro);
 
         env.bind(name, macro);
         return macro;
@@ -109,7 +113,7 @@ var specialForms = {
             jsFuncName = stringValue(jsFuncName);
         }
 
-        while (jsArgs != SchemeValues.NIL) {
+        while (!jsArgs.nil) {
             jsArgsArray.push(schemeEval(jsArgs.car, env));
             jsArgs = jsArgs.cdr;
         }

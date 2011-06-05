@@ -13,26 +13,26 @@ var blarg = false;
 function repl(line) {
     var out = [],
         exps;
-    try {
+//    try {
         exps = read(line);
 
         for (var i = 0; i < exps.length; i++) {
-            try {
+//            try {
                 exps[i] = schemeEval(exps[i], GLOBAL_ENVIRONMENT);
                 out.push({out : exps[i].toString()});
-            } catch (e) {
+/*            } catch (e) {
                 out.push({
                     out : e.toString(),
                     type : "err"
                 });
-            }
+            }*/
         }
-    } catch (e) {
+/*    } catch (e) {
         out.push({
             out : e.toString(),
             type : "err"
         });
-    }
+    }*/
 
     return out;
 }
@@ -69,7 +69,6 @@ function read(line) {
 
         // This allows us to read the internals of improper lists.
         if (token == Characters.PAIR_SEPARATOR) {
-            console.log("Improper end:", schemeExpression(nextToken(line)));
             exps.end = schemeExpression(nextToken(line));
             break;
         } else {

@@ -18,9 +18,8 @@ function schemeSyntaxRules(exp, env) {
     // Parts of the syntax-rules:
     exp.literals = exp.car;
     var parts = exp.cdr;
-    while (parts != SchemeValue.NIL) {
-        parts.car = schemeSyntaxRule(parts.car);
-        parts = parts.cdr;
+    for (var prt = parts; !prt.nil; prt = prt.cdr) {
+        prt.car = schemeSyntaxRule(prt.car);
     }
 
     /**
@@ -35,14 +34,15 @@ function schemeSyntaxRules(exp, env) {
     exp.transform = function (expr) {
         expr = schemeExpression(expr);
 
-        for (var part = parts; part != SchemeValues.NIL; part = part.cdr) {
-            if (part.matches(expr)) {
-                return part.transform(expr);
+        for (var part = parts; !part.nil; part = part.cdr) {
+            if (part.car.matches(expr)) {
+                return part.car.transform(expr);
             }
         }
 
         throw "The given expression (" + expr + ") does not match the macro (" + exp + ").";
     };
+
 
     /**
      * Returns the given SchemeExpression as a SchemeSyntaxRule which is part of a SchemeMacro.
@@ -53,8 +53,12 @@ function schemeSyntaxRules(exp, env) {
      */
     function schemeSyntaxRule(ruleExp) {
         ruleExp = schemeExpression(ruleExp);
+        console.log("Creating rule: " + ruleExp);
+
         var template = templatePattern(ruleExp.car.cdr),// Everything but the keyword defining it.
             body = ruleExp.cdr;// The resulting expression.
+        console.log("With template: " + template);
+        console.log("And body: " + body);
 
         /**
          * Returns whether this rule matches the given expression.
@@ -74,29 +78,32 @@ function schemeSyntaxRules(exp, env) {
          * @return {SchemeExpression} the result of applying this rule on the given expression.
          */
         ruleExp.transform = function (exp) {
+            console.log("Transforming " + exp + " using " + ruleExp);
+            
             var newEnv = new SchemeEnvironment(env),
                 values = exp,
                 result = schemeExpression(body);
+            console.log("Body", body);
+            console.log("Should be:", schemeExpression(body));
+            console.log("Result", result);
 
-            for (var names = template; names != SchemeValues.NIL; names = names.cdr) {
-                if (names.cdr != SchemeValues.NIL && !names.cdr.car.rest) {
-                    newEnv.bind(names.car, values.car);
-                } else {
-                    newEnv.bind(names.car, values.cdr);
-                    break;
-                }
-                
-                values = value.cdr;
-            }
+            template.bind(values, newEnv);
 
-            for (var curr = result; curr != SchemeValues.NIL; curr = curr.cdr) {
+            for (var curr = result; !curr.nil; curr = curr.cdr) {
                 if (newEnv.lookup(curr.car)) {
-                    curr.car = newEnv.looup(curr.car);
+                    curr.car = newEnv.lookup(curr.car);
                 }
             }
 
+            console.log("The result is", result);
             return result;
         };
+
+        ruleExp.toString = function () {
+            return template + " -> " + body;
+        };
+
+        return ruleExp;
     }
 
     /**
@@ -110,11 +117,12 @@ function schemeSyntaxRules(exp, env) {
         exp = schemeExpression(exp);
 
         if (exp.list) {
-            for (var part = exp; part != SchemeValues.NIl; part = part.cdr) {
-                if (part.cdr.car.rest) {
-                    part.car = templatePattern(exp, true);
+            for (var part = exp; !part.nil; part = part.cdr) {
+                if (!part.cdr.nil && part.cdr.car.rest) {
+                    part.car = templatePattern(part.car, true);
+                    break;
                 } else {
-                    part.car = templatePattern(exp);
+                    part.car = templatePattern(part.car);
                 }
             }
         }
@@ -125,17 +133,18 @@ function schemeSyntaxRules(exp, env) {
          * @param {SchemeExpression} expr the expression to check.
          * @return whether the given expression matches this template.
          */
-        this.matches = function (expr) {
+        exp.matches = function (expr) {
             if (exp.atom && !vararg) {
                 return expr.cdr = SchemeValues.NIL;
             } else if (exp.atom) {
                 return true;
             } else if (!vararg) {
+                console.log("Checking: " + exp + ", " + expr);
                 return match(exp, expr);
             } else {
                 var matches = true;
 
-                for (var e = expr; e != SchemeValues.NIL; e = e.cdr) {
+                for (var e = expr; !e.nil; e = e.cdr) {
                     matches = match(exp, e) && matches;
                 }
 
@@ -151,13 +160,17 @@ function schemeSyntaxRules(exp, env) {
              */
             function match(part, e) {
                 var matches = true;
-                
-                for (var tmp = exp; tmp != SchemeValues.NIl; part = part.cdr, tmp = tmp.cdr) {
-                    if (tmp.cdr != SchemeValues.NIL && tmp.cdr.car.rest) {
-                        matches = tmp.car.matches(part.cdr) && matches;
+
+                if (part.nil || e.nil) {
+                    return (part.nil && e.nil) || false;
+                }
+
+                for (var tmp = e; !part.nil; part = part.cdr, tmp = tmp.cdr) {
+                    if (!tmp.cdr.nil && tmp.cdr.car.rest) {
+                        matches = part.car.matches(tmp.cdr) && matches;
                         break;
                     } else {
-                        matches = tmp.car.matches(part.car) && matches;
+                        matches = part.car.matches(tmp.car) && matches;
                     }
                 }
 
@@ -170,18 +183,19 @@ function schemeSyntaxRules(exp, env) {
          * This assumes that the given expression can be validly bound to the template. 
          *
          * @param {SchemeExpression} expr the expression to bind.
-         * @param {SchemeEnvironment} the environment in which to bind it.
+         * @param {SchemeEnvironment} env the environment in which to bind it.
          */
-        this.bind = function (expr, env) {
+        exp.bind = function (expr, env) {
             if (vararg) {
-                this.bindRest(expr, env);
+                exp.bindRest(expr, env);
             }
             
             if (exp.atom) {
                 env.bind(exp, expr);
             } else {
-                for (var part = exp; part != SchemeValues.NIL; part = part.cdr, expr = expr.cdr) {
-                    part.car.bind(expr.car);
+                for (var part = exp; !part.nil; part = part.cdr, expr = expr.cdr) {
+                    console.log("Binding " + part.car + " to " + expr.car);
+                    part.car.bind(expr.car, env);
                 }
             }
         };
@@ -194,11 +208,11 @@ function schemeSyntaxRules(exp, env) {
          * @param {SchemeExpression} expr the expression to bind.
          * @param {SchemeEnvironment} the environment in which to bind it.
          */
-        this.bindRest = function (expr, env) {
+        exp.bindRest = function (expr, env) {
             if (exp.atom) {
                 env.bind(exp, expr);
             } else {
-                for (var part = exp, i = 0; part != SchemeValues.NIL; part = part.cdr, i++) {
+                for (var part = exp, i = 0; !part.nil; part = part.cdr, i++) {
                     for (var bindPart = expr; bindPart != SchemeValues.NIl; bindPart = bindPart.cdr) {
                         part.car.bind(getPart(bindPart, i));
                     }
@@ -217,6 +231,8 @@ function schemeSyntaxRules(exp, env) {
                 return part.car;
             }
         };
+
+        return exp;
     }
 
     /**
@@ -225,7 +241,7 @@ function schemeSyntaxRules(exp, env) {
      * @return a string representation of the macro.
      */
     exp.toString = function () {
-        return "{" + exp + "}";
+        return "{macro=" + exp.literals + ":\n" + parts  + "}";
     };
 
     return exp;
