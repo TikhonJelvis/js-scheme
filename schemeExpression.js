@@ -77,6 +77,7 @@ function schemeExpression (exp) {
             _scheme : true,
             value : exp,
             atom : true,
+            rest : exp == "...",
             toString : function () {
                 return exp;
             }
