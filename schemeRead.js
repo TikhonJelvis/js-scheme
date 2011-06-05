@@ -118,18 +118,18 @@ function indexOfUnescaped(string, character, start) {
 }
 
 /**
- * Returns the next token from the given line. If there is no next token in the line,
- * returns "".
+ * Returns the position of the  next token from the given line. If there is no next token
+ * in the line, returns [0, 0].
  *
  * @param {String} line the line of text to get the token from.
  * @param {Integer} [startIndex=0] the index from which to get the token.
- * @return {String} the first token in the line or "" if no token exists.
+ * @return The starting and ending index of the token as an array [start, end].
  */
-function nextToken(line, startIndex) {
+function nextTokenPosition(line, startIndex) {
     line = line.trim();
     
     if (line.length < 1) {
-        return "";
+        return [0, 0];
     }
     startIndex = startIndex || 0;
     
@@ -137,31 +137,63 @@ function nextToken(line, startIndex) {
         endIndex = 0;
 
     switch (firstChar) {
+    case Characters.COMMENT:
+        endIndex = line.indexOf("\n");
+        if (endIndex >= 0) {
+            var next = nextToken(line.substring(endIndex + 1));
+            var start = line.substring(endIndex).indexOf(next);
+            return [endIndex + start, endIndex + start + next.length];
+        } else {
+            return [0, 0];
+        }
     case Characters.STRING_QUOTE:
         endIndex = indexOfUnescaped(line.substring(1), Characters.STRING_QUOTE);
         if (endIndex < 0) {
             throw "Syntax error: missing quote:\n" + line;
         }
-        return line.substring(startIndex, endIndex + 2);
+        return [startIndex, endIndex + 2];
     case Characters.NO_ESCAPE_QUOTE:
         endIndex = line.substring(1).indexOf(Characters.NO_ESCAPE_QUOTE);
-        return line.substring(startIndex, endIndex + 2);
+        return [startIndex, endIndex + 2];
     case Characters.QUOTE:
-        return Characters.QUOTE + nextToken(line.substring(1));
+        return [startIndex, nextToken(line.substring(1))[1] + 1];
     case Characters.LIST_START:
         endIndex = matchBalancedPair(line);
         if (endIndex < 0) {
             throw "Syntax error: missing parentheses:\n" + line;
         }
-        return line.substring(startIndex, endIndex + 1);
+        return [startIndex, endIndex + 1];
     default:
+        var commentIndex = line.indexOf(";"),
+            whitespaceIndex = -1;
         if (/.*\s.*/.test(line)) {
-            endIndex = line.indexOf(line.match(/\s/)[0]);
-        } else {
-            endIndex = line.length;
+            whitespaceIndex = line.indexOf(line.match(/\s/)[0]);
         }
-        return line.substring(startIndex, endIndex);
+        
+        if (commentIndex < 0) {
+            endIndex = whitespaceIndex < 0 ? line.length : whitespaceIndex;
+        } else if (whitespaceIndex < 0) {
+            endIndex = commentIndex < 0 ? line.length : commentIndex;
+        } else {
+            endIndex = whitespaceIndex < commentIndex ? whitespaceIndex : commentIndex;
+        }
+        
+        return [startIndex, endIndex];
     }
+}
+
+/**
+ * Returns the next token from the given line. If there is no next token in the line,
+ * returns "".
+ *
+ * @param {String} line the line of text to get the token from.
+ * @param {Integer} [startIndex=0] the index from which to get the token.
+ * @return {String} the next token.
+ */
+function nextToken(line, startIndex) {
+    line = line.trim();
+    var tokenPosition = nextTokenPosition(line, startIndex);
+    return line.substring(tokenPosition[0], tokenPosition[1]);
 }
 
 /**
@@ -171,13 +203,11 @@ function nextToken(line, startIndex) {
  * @return {String} the remainder of the line after the first token is taken away.
  */
 function remainder(line) {
-    var token = nextToken(line);
-
-    if (token.length >= line.length) {
+    var tokenPosition = nextTokenPosition(line);
+    if (tokenPosition[0] === tokenPosition[1]) {
         return "";
     }
-    
-    return line.substring(token.length).trim();
+    return line.substring(tokenPosition[1]);
 }
 
 /**

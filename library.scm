@@ -1,4 +1,4 @@
-;; This is the library of Scheme code that supplements the code defined by JavaScript.
+;; This defines all of the standard library functions that can be written in pure Scheme:
 (define list (lambda args args))
 (define (map fn ls)
   (if (null? ls)

@@ -35,7 +35,11 @@ var Characters = {
     /**
      * The character that separates the two elements of a pair which isn't a list.
      */
-    PAIR_SEPARATOR : "."
+    PAIR_SEPARATOR : ".",
+    /**
+     * The character that denotes the rest of the line as a comment.
+     */
+    COMMENT : ";"
 };
 
 /**
