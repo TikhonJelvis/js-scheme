@@ -60,6 +60,13 @@ var specialForms = {
             return newValue;
         }
     },
+    "define-syntax" : function (exp, env) {
+        var name = exp.car,
+            macro = schemeSyntaxRules(exp.cdr.car.cdr);
+
+        env.bind(name, macro);
+        return macro;
+    },
     "set!" : function (exp, env) {
         var name = exp.car,
             value = schemeEval(exp.cdr.car, env);

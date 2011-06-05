@@ -47,6 +47,8 @@ function schemeApply(proc, params, env) {
 
     if (proc.specialForm) {
         return specialForms[proc.name](params, env);
+    } else if (proc.macro) {
+        return schemeEval(proc.transform(params), env);
     } else if (proc.proc) {
         var newEnv = new SchemeEnvironment(proc.env),
             evalledParams = [];

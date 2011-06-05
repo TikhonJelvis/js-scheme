@@ -34,13 +34,14 @@ function schemeSyntaxRules(exp, env) {
      */
     exp.transform = function (expr) {
         expr = schemeExpression(expr);
-        for (var len = 0, e = expr; e != SchemeValues.NIL; e = e.cdr);
-        for (var p = parts; parts != SchemeValues.NIL; p = p.cdr) {
-            if (len == p.car.length || (len > p.car.length && p.car._vararg)) {
-                return p.car.transform(expr);
+
+        for (var part = parts; part != SchemeValues.NIL; part = part.cdr) {
+            if (part.matches(expr)) {
+                return part.transform(expr);
             }
         }
-        throw "Wrong number of arguments passed to macro!";
+
+        throw "The given expression (" + expr + ") does not match the macro (" + exp + ").";
     };
 
     /**
@@ -52,18 +53,17 @@ function schemeSyntaxRules(exp, env) {
      */
     function schemeSyntaxRule(ruleExp) {
         ruleExp = schemeExpression(ruleExp);
-        var template = ruleExp.car.cdr,// Everything but the keyword defining it.
+        var template = templatePattern(ruleExp.car.cdr),// Everything but the keyword defining it.
             body = ruleExp.cdr;// The resulting expression.
 
-        ruleExp.length = 0;
-        for (var tmp = template; tmp != SchemeValue.NIL; tmp = tmp.cdr) {
-            if (tmp.car.rest) {
-                ruleExp._vararg = true;
-                ruleExp.length--;
-            } else {
-                ruleExp.length++;
-            }
-        }
+        /**
+         * Returns whether this rule matches the given expression.
+         * @param {SchemeExpression} exp the expression to check.
+         * @return whether the given expression matches this rule.
+         */
+        ruleExp.matches = function (exp) {
+            return template.matches(exp);
+        };
 
         /**
          * Given a SchemeExpression, transforms it according to its rule. The SchemeExpression passed in
@@ -98,4 +98,135 @@ function schemeSyntaxRules(exp, env) {
             return result;
         };
     }
+
+    /**
+     * Represents a pattern in the template like (or a) or (let ((binding name) ...) body).
+     *
+     * @param {SchemeExpression} exp the expression defining the pattern.
+     * @param {Boolean} vararg whether this pattern should capture a list or just itself.
+     * @return {SchemePattern} the pattern corresponding to the expression.
+     */
+    function templatePattern(exp, vararg) {
+        exp = schemeExpression(exp);
+
+        if (exp.list) {
+            for (var part = exp; part != SchemeValues.NIl; part = part.cdr) {
+                if (part.cdr.car.rest) {
+                    part.car = templatePattern(exp, true);
+                } else {
+                    part.car = templatePattern(exp);
+                }
+            }
+        }
+
+        /**
+         * Returns whether this pattern matches the given expression.
+         *
+         * @param {SchemeExpression} expr the expression to check.
+         * @return whether the given expression matches this template.
+         */
+        this.matches = function (expr) {
+            if (exp.atom && !vararg) {
+                return expr.cdr = SchemeValues.NIL;
+            } else if (exp.atom) {
+                return true;
+            } else if (!vararg) {
+                return match(exp, expr);
+            } else {
+                var matches = true;
+
+                for (var e = expr; e != SchemeValues.NIL; e = e.cdr) {
+                    matches = match(exp, e) && matches;
+                }
+
+                return matches;
+            }
+
+            /**
+             * Returns whether the given part of the template matches the given part of the expression.
+             *
+             * @param {SchemeTemplate} part the part of the template to check.
+             * @param {SchemeExpression} e the part of the expression to check.
+             * @return whether the part of the template matches the part of the expression.
+             */
+            function match(part, e) {
+                var matches = true;
+                
+                for (var tmp = exp; tmp != SchemeValues.NIl; part = part.cdr, tmp = tmp.cdr) {
+                    if (tmp.cdr != SchemeValues.NIL && tmp.cdr.car.rest) {
+                        matches = tmp.car.matches(part.cdr) && matches;
+                        break;
+                    } else {
+                        matches = tmp.car.matches(part.car) && matches;
+                    }
+                }
+
+                return matches;                
+            }
+        };
+
+        /**
+         * Binds the given expression to the names in this pattern in the given environment.
+         * This assumes that the given expression can be validly bound to the template. 
+         *
+         * @param {SchemeExpression} expr the expression to bind.
+         * @param {SchemeEnvironment} the environment in which to bind it.
+         */
+        this.bind = function (expr, env) {
+            if (vararg) {
+                this.bindRest(expr, env);
+            }
+            
+            if (exp.atom) {
+                env.bind(exp, expr);
+            } else {
+                for (var part = exp; part != SchemeValues.NIL; part = part.cdr, expr = expr.cdr) {
+                    part.car.bind(expr.car);
+                }
+            }
+        };
+
+        /**
+         * Given an expression that is a list of expressions matching this pattern, binds the
+         * expression to the pattern recursively. This is used when a pattern is followed by
+         * an ellipsis (...).
+         *
+         * @param {SchemeExpression} expr the expression to bind.
+         * @param {SchemeEnvironment} the environment in which to bind it.
+         */
+        this.bindRest = function (expr, env) {
+            if (exp.atom) {
+                env.bind(exp, expr);
+            } else {
+                for (var part = exp, i = 0; part != SchemeValues.NIL; part = part.cdr, i++) {
+                    for (var bindPart = expr; bindPart != SchemeValues.NIl; bindPart = bindPart.cdr) {
+                        part.car.bind(getPart(bindPart, i));
+                    }
+                }
+            }
+
+            /**
+             * Gets the part of an expression at the given index.
+             *
+             * @param {SchemeExpression} exp a scheme expression that is a list.
+             * @param {int} index the index to get from the list.
+             * @return the part of the given expression at the given index.
+             */
+            function getPart(exp, index) {
+                for (var i = 0, part = exp; i < index; i++, part = part.cdr);
+                return part.car;
+            }
+        };
+    }
+
+    /**
+     * Returns a string representation of the macro.
+     *
+     * @return a string representation of the macro.
+     */
+    exp.toString = function () {
+        return "{" + exp + "}";
+    };
+
+    return exp;
 }
