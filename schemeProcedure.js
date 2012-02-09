@@ -44,7 +44,7 @@ function schemeProcedure(exp, env) {
 
         bind_args:
         if (!exp._vararg) {
-            while (parameters != SchemeValues.NIL && names != SchemeValues.NIL) {
+            while (!parameters.nil && !names.nil) {
                 if (!names.cdr) {
                     console.log(names);
                     env.bind(names, parameters);
@@ -56,14 +56,14 @@ function schemeProcedure(exp, env) {
                 names = names.cdr;
             }
 
-            if (parameters == SchemeValues.NIL && !names.cdr) {
+            if (!parameters.nil && !names.cdr) {
                 env.bind(names, SchemeValues.NIL);
                 break bind_args;
             }
 
-            if (names != SchemeValues.NIL) {
+            if (!names.nil) {
                 schemeError("Too few parameters!\n" + exp);
-            } else if (parameters != SchemeValues.NIL) {
+            } else if (!parameters.nil) {
                 schemeError("Too many parameters!\n" + exp);
             }
         } else {

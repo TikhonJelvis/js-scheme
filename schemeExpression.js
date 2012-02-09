@@ -77,6 +77,7 @@ function schemeExpression (exp) {
             _scheme : true,
             value : exp,
             atom : true,
+            rest : exp == "...",
             toString : function () {
                 return exp;
             }
@@ -275,7 +276,7 @@ function list(parts) {
         delete parts.end;
         var ls = list(parts);
         delete ls.list;
-        for (var lsp = ls; lsp.cdr != SchemeValues.NIL; lsp = lsp.cdr);
+        for (var lsp = ls; !lsp.cdr.nil; lsp = lsp.cdr);
         lsp.cdr = end;
         return ls;
     }

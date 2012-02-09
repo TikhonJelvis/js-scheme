@@ -17,19 +17,19 @@ GLOBAL_ENVIRONMENT.bind(schemeExpression("nil"), SchemeValues.NIL);
  * @return {SchemeExpression} the result of evaluating the given expression.
  */
 function schemeEval(exp, env) {
-    try {
+//    try {
         return exp.quoted ? exp.value :
             exp.selfEvaluating ? exp :
             exp.variable ? env.lookup(exp) || schemeError("Variable " + exp + " does not exist!") :
             exp.list ? schemeApply(schemeEval(exp.car, env), exp.cdr, env) :
             schemeError("Invalid expression!\n" + exp);
-    } catch (e) {
+/*    } catch (e) {
         if (e.schemeError) {
             e.stack.push(exp);
         }
 
         throw e;
-    }
+    }*/
 }
 
 /**
@@ -47,11 +47,13 @@ function schemeApply(proc, params, env) {
 
     if (proc.specialForm) {
         return specialForms[proc.name](params, env);
+    } else if (proc.macro) {
+        return schemeEvalSequence(proc.transform(params), env);
     } else if (proc.proc) {
         var newEnv = new SchemeEnvironment(proc.env),
             evalledParams = [];
 
-        while (params != SchemeValues.NIL) {
+        while (!params.nil) {
             evalledParams.push(schemeEval(params.car, env));
             params = params.cdr;
         }
@@ -74,7 +76,7 @@ function schemeApply(proc, params, env) {
  */
 function schemeEvalSequence(seq, env) {
     var result;
-    while (seq != SchemeValues.NIL) {
+    while (!seq.nil) {
         result = schemeEval(seq.car, env);
         seq = seq.cdr;
     }
