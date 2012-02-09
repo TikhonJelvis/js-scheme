@@ -18,6 +18,11 @@ Scheme
 <script src="schemeBuiltins.js"></script>
 <script src="init.js"></script>
 
+<script language="scheme">
+;; This is a Scheme block of code! Right in the page! Pretty cool, I think.
+(define (length ls) (if (null? ls) 0 (+ 1 (length (cdr ls)))))
+(define (avg ls) (/ (accumulate + 0 ls) (length ls)))
+</script>
 <link rel="stylesheet" type="text/css" href="scheme.css" />
 
 </head>

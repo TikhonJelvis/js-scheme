@@ -156,7 +156,7 @@ function nextTokenPosition(line, startIndex) {
         endIndex = line.substring(1).indexOf(Characters.NO_ESCAPE_QUOTE);
         return [startIndex, endIndex + 2];
     case Characters.QUOTE:
-        return [startIndex, nextToken(line.substring(1))[1] + 1];
+        return [startIndex, nextTokenPosition(line.substring(1))[1] + 1];
     case Characters.LIST_START:
         endIndex = matchBalancedPair(line);
         if (endIndex < 0) {
