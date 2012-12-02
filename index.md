@@ -1,5 +1,5 @@
 ---
-title: Scheme
+title: JS Scheme
 author: Tikhon Jelvis
 ---
 
