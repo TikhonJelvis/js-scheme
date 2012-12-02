@@ -13,26 +13,26 @@ var blarg = false;
 function repl(line) {
     var out = [],
         exps;
-//    try {
+   try {
         exps = read(line);
 
         for (var i = 0; i < exps.length; i++) {
-//            try {
+           try {
                 exps[i] = schemeEval(exps[i], GLOBAL_ENVIRONMENT);
                 out.push({out : exps[i].toString()});
-/*            } catch (e) {
+           } catch (e) {
                 out.push({
                     out : e.toString(),
                     type : "err"
                 });
-            }*/
+            }
         }
-/*    } catch (e) {
+   } catch (e) {
         out.push({
             out : e.toString(),
             type : "err"
         });
-    }*/
+    }
 
     return out;
 }

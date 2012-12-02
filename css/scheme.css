@@ -18,13 +18,13 @@
 }
 
 .schemePrompt .err {
-    color : red;
+    color : #2F0970;
 }
 
 .schemePrompt .in {
-    color : #0B4FAA;
+    color : #092F70;
 }
 
 .schemePrompt .info {
-    color : #0BAA4F;
+    color : #09702F;
 }

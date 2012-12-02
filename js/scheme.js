@@ -17,19 +17,19 @@ GLOBAL_ENVIRONMENT.bind(schemeExpression("nil"), SchemeValues.NIL);
  * @return {SchemeExpression} the result of evaluating the given expression.
  */
 function schemeEval(exp, env) {
-//    try {
+   try {
         return exp.quoted ? exp.value :
             exp.selfEvaluating ? exp :
             exp.variable ? env.lookup(exp) || schemeError("Variable " + exp + " does not exist!") :
             exp.list ? schemeApply(schemeEval(exp.car, env), exp.cdr, env) :
             schemeError("Invalid expression!\n" + exp);
-/*    } catch (e) {
+   } catch (e) {
         if (e.schemeError) {
             e.stack.push(exp);
         }
 
         throw e;
-    }*/
+    }
 }
 
 /**
