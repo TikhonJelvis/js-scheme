@@ -26,7 +26,7 @@ $(function () {
     load(data);
 
     // Now dynamically load Scheme code using AJAX:
-    $.get("library.scm", function (data) {
+    $.get("js/scm/library.scm", function (data) {
         load(data);
     });
 });
