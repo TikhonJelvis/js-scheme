@@ -9,7 +9,7 @@ author: Tikhon Jelvis
 
 A while back, I wrote a little Scheme interpreter in JavaScript. It only supports very basic Scheme constructs like lambdas and numbers. I did not add macros or continuations. This also means some features you'd normally expect, like `let`, are missing because I was planning to implement `let` as a macro but never finished the macro system!
 
-I also wrote a pretty poor REPL for it. You can play around a bit.
+I also wrote a very basic REPL for it. You can play around a bit.
 
 Try something basic like
 
@@ -20,10 +20,17 @@ Try something basic like
 
 </div>
 
-<div id="schemePrompt">
+<div class="content">
+
+## Try It!
+
+Here is a simple JavaScript REPL for my Scheme interpreter. Type in the very top row. Try something simple like `(+ 1 2)`.
+
+<div class="schemePrompt code" id="schemePrompt">
+</div>
 </div>
 
-<div class="content>
+<div class="content">
 
 ## Embedding
 
@@ -38,3 +45,5 @@ You can also embed Scheme code directly into your page using `<script>` tags:
     </script>
     
 Now the `avg` function is available to other Scheme code you have on your page. Unfortunately, this does *not* work with scripts from a different file. So `<script language="scheme" src="foo.scm">` won't work.
+
+</div>

@@ -14,7 +14,11 @@ function Cli(runner) {
     // HTML elements:
     var top = $("<div>"),
         output = $("<div>"),
-        input = $("<input>");
+        holder = $('<div class="holder">'),
+        input = $('<input class="code">');
+
+    holder.append($("<span>&gt;</span>"));
+    holder.append(input);
 
     // Command history:
     var history = [],
@@ -179,6 +183,6 @@ function Cli(runner) {
         return;
     });
 
-    top.append(input);
+    top.append(holder);
     top.append(output);
 };
