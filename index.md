@@ -41,7 +41,8 @@ I also added some cute JavaScript-specific features into the language. You can e
 You can also embed Scheme code directly into your page using `<script>` tags:
 
     <script language="scheme">
-      (define (avg ls) (/ (accumulate + 0 ls) (length ls)))
+      (define (avg ls)
+        (/ (accumulate + 0 ls) (length ls)))
     </script>
     
 Now the `avg` function is available to other Scheme code you have on your page. Unfortunately, this does *not* work with scripts from a different file. So `<script language="scheme" src="foo.scm">` won't work.
