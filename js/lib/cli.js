@@ -13,7 +13,7 @@ function Cli(runner) {
     
     // HTML elements:
     var top = $("<div>"),
-        output = $("<div>"),
+        output = $('<div class="output">'),
         holder = $('<div class="holder">'),
         input = $('<input class="code">');
 

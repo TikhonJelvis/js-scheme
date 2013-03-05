@@ -2,8 +2,14 @@
 
 .schemePrompt {
     height : 60ex;
-    margin-left : 14%;
-    margin-right : 14%;
+    margin-left : 12.5%;
+    margin-right : 12.5%;
+    margin-top : 10px;
+}
+
+.schemePrompt .output {
+    height : 57ex;
+    overflow : auto;
 }
 
 .schemePrompt input {
